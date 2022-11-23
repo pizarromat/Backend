@@ -1,0 +1,20 @@
+[
+    {
+        title: 'hamburguesa',
+        price: 1500,
+        thumbnail: 'https://res.cloudinary.com/de2pmu5na/image/upload/v1667333059/hamburguesas_akb5mi.jpg',
+        id: 1
+    },
+    {
+        title: 'empanadas',
+        price: 1400,
+        thumbnail: 'https://res.cloudinary.com/de2pmu5na/image/upload/v1667333059/empanadas_cqa92w.jpg',
+        id: 2
+    },
+    {
+        title: 'asado',
+        price: 2500,
+        thumbnail: 'https://res.cloudinary.com/de2pmu5na/image/upload/v1667333062/asado_lwhqqr.jpg',
+        id: 3
+    }
+]
