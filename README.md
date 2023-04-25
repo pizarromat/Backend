@@ -1,74 +1,177 @@
 Para resolver este desafio, fui siguiendo los siguientes pasos:
 
-1- Cree el class de ProductManager
+Creo el require primero que todo
+
+    const fs = require('fs')
+
+1- Creo el class de ProductManager
 
     class ProductManager{}
 
-2- Cree el constructor con el elemento "products", el cual es un array vacio.
+2- Creo el constructor con el elemento "products", el cual es un array vacio.
 
-    constructor(){
-        this.products = []
+    constructor(path) {
+        this.products = []  //para guardar en la memoria todos los productos
+        this.path = path   //para guardar en la memoria la ruta del archivo
+        this.init(path)  //para iniciar la instancia y crear el archivo en caso de no existir o cargar la memoria en caso de existir productos
     }
 
-3- Luego cree el metodo "getProducts", con la funcion de devolver el array con los productos creados. Pero como todavia no habia creado el metodo "addProduct" entonces solo me devolvia un array vacio.
+3- Creo el "init" el cual va a ser el metodo que al definirse una instancia de la clase, va a crear el archivo.
 
-    getProducts(){
-        console.log(this.products)
-        return this.products
+    init(path) {   
+        //verifico si existe el archivo
+        let file = fs.existsSync(path)
+        if (!file) {
+            //si no existe lo creo
+            fs.writeFileSync(path,'[]')
+            console.log('file created at path: '+this.path)
+            return 'file created at path: '+this.path
+        } else {
+            //si existe cargo los productos en la memoria del programa
+            this.products = JSON.parse(fs.readFileSync(path,'UTF-8'))
+            console.log('data recovered')
+            return 'data recovered'
+        }
     }
 
-4- Luego cree el metodo "addProduct", el cual agregara productos al array con todas las especificaciones pedidas
+4- Creo el metodo "addProduct", el cual agrega los productos al array
 
-    addProduct({ title, description, price, thumbnail, stock }){
-        //defino un objeto con todo lo pedido
-        let product = { title, description, price, thumbnail, stock, id }
-        //pusheo el objeto
-        this.products.push(product)
+    async addProduct({ title,description,price,thumbnail,code,stock }) {
+            try {
+                //defino el objeto que necesito agregar al array
+                let data = { title,description,price,thumbnail,code,stock }
+                //si la memoria tiene productos
+                if (this.products.length>0) {
+                    //busco el id del último elemento y le sumo 1
+                    let next_id = this.products[this.products.length-1].id+1
+                    //agrego la propiedad al objeto
+                    data.id = next_id
+                } else {
+                    //en caso que no tenga: asigno el primer id
+                    data.id = 1
+                }
+                //agrego el objeto (producto) a la memoria del programa
+                this.products.push(data)
+                //convierto a texto plano el array
+                let data_json = JSON.stringify(this.products,null,2)
+                //sobre-escribo el archivo
+                await fs.promises.writeFile(this.path,data_json)
+                console.log('created product: '+data.id)
+                return 'product: '+data.id
+            } catch(error) {
+                console.log(error)
+                return 'addProduct: error'
+            }
+        }
+
+
+
+5- Luego cree el metodo "getProducts", con la funcion de devolver el array con los productos creados.
+
+    getProducts() {
+        try{
+            //leer productos
+            return this.products
+        } catch(error) {
+            console.log(error)
+            return 'getProduct: error'
+        }
     }
 
-    luego, como me pedia que el ID se agregue automaticamente y que sea auto-incrementable, realice lo siguiente guiandome con lo que el profesor explico en la clase.
 
-    //declado que id = 0.
-    let id = 0
-    //pregunto primero que si "id" es estricamente igual a 0.
-    if (this.products.length===0) {
-        // si es 0, entonces lo pone como primer valor de id.
-        id = 1
-    // pero si no es estrictamente igual a 0.
-    } else {
-        // busca el ultimo evento del array, para hallar la clave id de ese evento.
-        let lastEvent = this.products[this.products.length-1] 
-        // y luego sumarle 1 a ese id.
-        id = lastEvent.id + 1
-    }
+6- luego creo el ultimo metodo "getProductById", con la funcion de buscar en el array el producto que coincida con el id, y si no coincide con ninguno, mostrar el msj "not found"
 
-5- luego creo el ultimo metodo "getProductById", con la funcion de buscar en el array el producto que coincida con el id, y si no coincide con ninguno, mostrar el msj "not found"
-
-    getProductById(product_id){
+    getProductById(id) {
         //luego utilizo el metodo find(), el cual devuelve el primer elemento del array, pero que en vez de buscar cualquier elemento, que busque el id y que se fije si es estrictamente igual al id ingresado.
-        let one = this.products.find(each => each.id === product_id)
-        //luego pregunta si el id ingresado coincide con alguno, para asi devolverlo.
-        if (one) {
-            console.log(one)
+        let one = this.products.find(each=>each.id===id)
+        //pregunta si no se encuentra el id ingresado, entonces devuelve el mensaje getProductById: error'.
+        if(!one) {
+            console.log('getProductById: error')
+            return null
+        } else{
+            //si el id ingresado coincide con alguno, lo devolvera
+            console.log('finded product: '+id)
             return one
         }
-        //y si no se encuentra el id ingresado, entonces devuelve el mensaje "not found".
-        console.log('not found')
-        return null
     }
+
+7- El metodo "updateProduct(id,data)" recibe un id y un objeto data con las propiedades que quiera modificar del producto.
+
+    async updateProduct(id,data) {
+        //data es el objeto con las propiedades que necesito modificar del producto
+        try {
+            //busco el producto
+            let one = this.getProductById(id)
+            //verifico si existe
+            if(!one) {
+                console.log('Not found')
+                return 'Not found'
+            }
+            // data debe tener propiedades a modificar
+            if(Object.keys(data).length===0) {
+                console.log('error: insert some product')
+                return 'error: insert some product'
+            }
+            //itero para modificar la propiedad correspondiente
+            for (let prop in data) {
+                one[prop] = data[prop]
+            }
+            //convierto a texto plano el array
+            let data_json = JSON.stringify(this.products,null,2)
+            //sobre-escribo el archivo
+            await fs.promises.writeFile(this.path,data_json)
+            console.log('updatedProduct: '+id)
+            return 'updatedProduct: '+id
+        } catch(error) {
+            console.log(error)
+            return 'updateProduct: error'
+        }
+    }
+
+7- El ultimo metodo "deleteProduct(id)" se encarga de recibir como parametro el id del producto y borrar el producto del archivo.
+
+    async deleteProduct(id) {
+        try {
+            //esta condicion me asegura que exista el producto, ya que si no existe no hay nada que borrar
+            // si  no lo encuentra me devuelve un null
+            let one = this.getProductById(id)  
+            //verifico si existe
+            if(!one) {
+                console.log('Not found')
+                return 'Not found'
+            }
+            //saco el usuario
+            this.products = this.products.filter(each=>each.id!==id)
+            //convierto a texto plano el array
+            let data_json = JSON.stringify(this.products,null,2)
+            //sobre-escribo el archivo
+            await fs.promises.writeFile(this.path,data_json)
+            console.log('deleteProduct: '+id)
+            return 'deleteProduct: '+id
+        } catch(error) {
+            console.log(error)
+            return 'deleteProduct: error'
+        }
+    }
+
 
 6- Luego al final, compruebo si los metodos funcionan correctamente agregando valores.
 
-let prueba = new ProductManager()
-
-//agregue diferentes productos para corroborar que funcionara todo correctamente
-prueba.addProduct({ title:"remera", description:"remeras de distintos colores", price: 10 , thumbnail: "./img/remera1.jpg" , stock: 5 })
-prueba.addProduct({ title:"buzo", description:"diferente variedad de buzos", price: 30 , thumbnail: "./img/buzo1.jpg" , stock: 10 })
-prueba.addProduct({ title:"gorra", description:"gorras de diferentes talles", price: 20 , thumbnail: "./img/gorra1.jpg" , stock: 8 })
-//aca pruebo el metodo de busqueda de id
-//el primero lo va a encontrar ya que hay un id=1
-prueba.getProductById(1)
-//pero el segundo id no lo va a encontrar, entonces va a saltar el mensaje "not found"
-prueba.getProductById(5)
-// devuelve el array
-prueba.getProducts()
+    async function manager() {
+        let manager = new ProductManager('./data/data.json')
+        await manager.addProduct({ title:"remeras",description:"remeras de colores",price:10,thumbnail:"foto remera",code:"rem",stock:4 })
+        await manager.addProduct({ title:"gorras",description:"gorras de colores",price:5,thumbnail:"foto gorras",code:"gor",stock:10 })
+        await manager.addProduct({ title:"buzos",description:"buzos de colores",price:20,thumbnail:"foto buzos",code:"buz",stock:8 })
+        await manager.addProduct({ title:"pantalones",description:"pantalones de colores",price:15,thumbnail:"foto pantalones",code:"pan",stock:6 })
+        await manager.addProduct({ title:"zapatillas",description:"zapatillas de colores",price:30,thumbnail:"foto zapatillas",code:"zap",stock:2 })
+        await manager.addProduct({ title:"short",description:"short de colores",price:10,thumbnail:"foto short",code:"zap",stock:12 })
+        await manager.addProduct({ title:"camperas",description:"camperas de colores",price:25,thumbnail:"foto camperas",code:"camp",stock:5 })
+        await manager.addProduct({ title:"jean",description:"jean de colores",price:30,thumbnail:"foto jean",code:"jean",stock:15 })
+        await manager.addProduct({ title:"camisas",description:"camisas de colores",price:25,thumbnail:"foto camisas",code:"cami",stock:10 })
+        await manager.updateProduct(1,{ title:"short" })
+        await manager.updateProduct(2,{ title:"campera", stock:15 })
+        await manager.updateProduct(3,{})  
+        await manager.deleteProduct(1)
+        await manager.deleteProduct(130)
+    }
+    manager()
